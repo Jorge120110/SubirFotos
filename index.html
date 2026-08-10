@@ -1,0 +1,138 @@
+ 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sube tus fotos del evento</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+    h2 { color: #333; margin-bottom: 10px; }
+    p { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+    input[type="file"] { display: none; }
+    .custom-file-upload {
+      border: 2px dashed #007bff;
+      color: #007bff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-block;
+      font-weight: bold;
+      width: 80%;
+      transition: background 0.3s;
+    }
+    .custom-file-upload:hover { background: #eef5ff; }
+    button {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      width: 90%;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    #status { margin-top: 15px; font-weight: bold; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>¡Comparte tus Fotos! 📸</h2>
+  <p>Selecciona una foto o video de tu galería para subirlo directamente al álbum del evento.</p>
+
+  <label for="fileInput" class="custom-file-upload">
+    📁 Seleccionar foto/video
+  </label>
+  <input type="file" id="fileInput" accept="image/*,video/*">
+
+  <p id="fileName"></p>
+
+  <button id="uploadBtn" onclick="uploadFile()" disabled>Subir foto</button>
+
+  <div id="status"></div>
+</div>
+
+<script>
+  // REEMPLAZA ESTA URL CON TU URL DE GOOGLE APPS SCRIPT
+ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK7VaET5G7vXTv1dauyL4jd33F-qcIfRcAd7OvVA0BOuPTxwlwgiSNRGm2CRXiWC6qpg/exec";
+
+  const fileInput = document.getElementById('fileInput');
+  const fileName = document.getElementById('fileName');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const statusDiv = document.getElementById('status');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+      fileName.textContent = fileInput.files[0].name;
+      uploadBtn.disabled = false;
+    }
+  });
+
+  function uploadFile() {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    statusDiv.style.color = "#007bff";
+    statusDiv.textContent = "Subiendo archivo, por favor espera...";
+    uploadBtn.disabled = true;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64Data = e.target.result.split(',')[1];
+      const payload = {
+        base64: base64Data,
+        mimeType: file.type,
+        filename: file.name
+      };
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.result === "success") {
+          statusDiv.style.color = "#28a745";
+          statusDiv.textContent = "¡Foto subida con éxito! 🎉 Gracias por compartir.";
+          fileInput.value = "";
+          fileName.textContent = "";
+        } else {
+          throw new Error(data.error);
+        }
+      })
+      .catch(err => {
+        statusDiv.style.color = "#dc3545";
+        statusDiv.textContent = "Error al subir la foto. Inténtalo de nuevo.";
+        console.error(err);
+        uploadBtn.disabled = false;
+      });
+    };
+
+    reader.readAsDataURL(file);
+  }
+</script>
+
+</body>
+</html>
