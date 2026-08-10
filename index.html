@@ -163,6 +163,7 @@
       font-style: italic;
       color: var(--brown-light);
       margin-bottom: 14px;
+      line-height: 1.45;
     }
 
     .btn-select-pill {
@@ -473,9 +474,9 @@
         <line x1="12" y1="3" x2="12" y2="15"></line>
       </svg>
       <div class="drop-zone-title">Arrastra tus fotos o videos aquí</div>
-      <div class="drop-zone-subtitle">Soporta fotos y videos de cualquier tamaño</div>
+      <div class="drop-zone-subtitle">Soporta fotos y videos (máximo 1 GB). Ten en cuenta que los archivos más extensos requerirán unos momentos adicionales para procesarse.</div>
       <span class="btn-select-pill">Seleccionar archivos</span>
-      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,video/mp4,video/quicktime,video/webm,video/x-msvideo" multiple>
+      <input type="file" id="fileInput" accept="image/*,video/*" multiple>
     </div>
 
     <!-- Cola de Selección y Vistas Previas -->
@@ -506,14 +507,14 @@
 
 <script>
   // URL de tu Google Apps Script Web App
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOJWC0qk1bu5NxsTtOKQ1WHwE3dI-YDcvncIdoI1zrwg9V3jXxk9lUA-cRBub45YVspg/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK7VaET5G7vXTv1dauyL4jd33F-qcIfRcAd7OvVA0BOuPTxwlwgiSNRGm2CRXiWC6qpg/exec";
 
   // Umbral: Archivos < 5MB se envían en 1 paquete. Archivos/videos >= 5MB usan la API Nativa de Google Drive.
   const DIRECT_MAX_SIZE = 5 * 1024 * 1024;
-  const DRIVE_CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB por bloque binario a Google Drive
+  const DRIVE_CHUNK_SIZE = 5 * 1024 * 1024;
 
-  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
-  const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/3gpp'];
+  const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm', '.avi', '.mkv', '.m4v', '.3gp', '.flv', '.mts', '.m2ts', '.wmv', '.ogv'];
+  const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif', '.svg', '.bmp', '.tiff', '.tif', '.avif'];
 
   let fileQueue = [];
 
@@ -527,6 +528,11 @@
   const statusDiv = document.getElementById('status');
   const progressContainer = document.getElementById('progressContainer');
   const progressBarFill = document.getElementById('progressBarFill');
+
+  // Prevenir que el navegador abra archivos arrastrados fuera de la dropzone
+  ['dragover', 'drop'].forEach(name => {
+    window.addEventListener(name, (e) => e.preventDefault(), false);
+  });
 
   // Drag & Drop
   ['dragenter', 'dragover'].forEach(name => {
@@ -544,6 +550,8 @@
   });
 
   dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     handleFiles(e.dataTransfer.files);
   });
 
@@ -552,20 +560,32 @@
     fileInput.value = '';
   });
 
+  function detectFileType(file) {
+    if (!file) return null;
+    const name = (file.name || '').toLowerCase();
+    const type = (file.type || '').toLowerCase();
+
+    const isVideo = type.startsWith('video/') || VIDEO_EXTENSIONS.some(ext => name.endsWith(ext));
+    const isImage = type.startsWith('image/') || IMAGE_EXTENSIONS.some(ext => name.endsWith(ext));
+
+    if (isVideo) return 'video';
+    if (isImage) return 'foto';
+    return null;
+  }
+
   function handleFiles(files) {
     if (!files || files.length === 0) return;
 
     Array.from(files).forEach(file => {
-      const isImg = ALLOWED_IMAGE_TYPES.includes(file.type) || file.type.startsWith('image/');
-      const isVid = ALLOWED_VIDEO_TYPES.includes(file.type) || file.type.startsWith('video/');
+      const detectedType = detectFileType(file);
 
-      if (isImg || isVid) {
+      if (detectedType) {
         const exists = fileQueue.some(item => item.file.name === file.name && item.file.size === file.size);
         if (!exists) {
           fileQueue.push({
             id: 'f_' + Math.random().toString(36).substr(2, 9),
             file: file,
-            type: isVid ? 'video' : 'foto',
+            type: detectedType,
             previewUrl: URL.createObjectURL(file)
           });
         }
@@ -596,7 +616,7 @@
 
       let mediaHtml = item.type === 'foto'
         ? `<img src="${item.previewUrl}" alt="Vista previa">`
-        : `<video src="${item.previewUrl}" muted playsinline></video>`;
+        : `<video src="${item.previewUrl}" muted playsinline webkit-playsinline preload="metadata"></video>`;
 
       card.innerHTML = `
         <div class="preview-media-container">
@@ -683,10 +703,8 @@
   /* ── ENRUTADOR PRINCIPAL ────────────────────────────── */
   async function uploadSingleFile(file, onProgress) {
     if (file.size <= DIRECT_MAX_SIZE) {
-      // Carga directa para fotos o archivos pequeños (< 5MB)
       return await uploadDirect(file, onProgress);
     } else {
-      // Carga directa a la API de Google Drive para videos (crea 1 solo archivo 100% reproducible)
       return await uploadDriveNativeResumable(file, onProgress);
     }
   }
@@ -725,9 +743,8 @@
     return data;
   }
 
-  /* Carga Nativa a Google Drive API (garantiza 1 solo archivo MP4 reproducible) */
+  /* Carga Nativa a Google Drive API */
   async function uploadDriveNativeResumable(file, onProgress) {
-    // 1. Pedir a Apps Script que inicie la sesión nativa de Google Drive
     const sessionPayload = {
       action: "createResumableSession",
       filename: file.name,
@@ -737,14 +754,12 @@
 
     const sessionData = await postToAppsScript(sessionPayload);
     if (!sessionData || !sessionData.uploadUrl) {
-      // Fallback a carga directa si no se obtuvo sesión
       return await uploadDirect(file, onProgress);
     }
 
     const uploadUrl = sessionData.uploadUrl;
     const totalChunks = Math.ceil(file.size / DRIVE_CHUNK_SIZE);
 
-    // 2. Subir bloques binarios directamente a Google Drive
     for (let i = 0; i < totalChunks; i++) {
       const start = i * DRIVE_CHUNK_SIZE;
       const end = Math.min(start + DRIVE_CHUNK_SIZE, file.size);
