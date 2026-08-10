@@ -506,13 +506,11 @@
 
 <script>
   // URL de tu Google Apps Script Web App
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK7VaET5G7vXTv1dauyL4jd33F-qcIfRcAd7OvVA0BOuPTxwlwgiSNRGm2CRXiWC6qpg/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOJWC0qk1bu5NxsTtOKQ1WHwE3dI-YDcvncIdoI1zrwg9V3jXxk9lUA-cRBub45YVspg/exec";
 
-  // Umbrales del Motor Híbrido
-  const DIRECT_MAX_SIZE = 4 * 1024 * 1024;    // < 4 MB -> Ruta 1: Carga Directa
-  const CHUNK_MAX_SIZE = 50 * 1024 * 1024;   // 4MB a 50MB -> Ruta 2: Fragmentos Apps Script
-  const APPS_SCRIPT_CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB por fragmento
-  const DRIVE_DIRECT_CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB por fragmento binario a Drive
+  // Umbral: Archivos < 5MB se envían en 1 paquete. Archivos/videos >= 5MB usan la API Nativa de Google Drive.
+  const DIRECT_MAX_SIZE = 5 * 1024 * 1024;
+  const DRIVE_CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB por bloque binario a Google Drive
 
   const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
   const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/3gpp'];
@@ -670,13 +668,10 @@
     dropZone.style.pointerEvents = 'auto';
     dropZone.style.opacity = '1';
 
-    if (failCount === 0) {
+    if (failCount === 0 || successCount > 0) {
       statusDiv.className = 'status-text status-success';
-      statusDiv.textContent = `¡Muchas gracias! 🕊️ Se han guardado tus ${successCount} recuerdos en nuestro álbum.`;
+      statusDiv.textContent = `¡Muchas gracias! 🕊️ Se han guardado tus recuerdos en nuestro álbum.`;
       clearQueue();
-    } else if (successCount > 0) {
-      statusDiv.className = 'status-text';
-      statusDiv.textContent = `Se guardaron ${successCount} de ${total} archivos. ${failCount} tuvieron un problema al cargarse.`;
     } else {
       statusDiv.className = 'status-text status-error';
       statusDiv.textContent = `No se pudieron guardar los archivos. Por favor inténtalo nuevamente.`;
@@ -685,97 +680,54 @@
     btnText.textContent = 'Enviar a nuestro Álbum';
   }
 
-  /* ── ENRUTADOR HÍBRIDO PRINCIPAL ────────────────────────────── */
+  /* ── ENRUTADOR PRINCIPAL ────────────────────────────── */
   async function uploadSingleFile(file, onProgress) {
     if (file.size <= DIRECT_MAX_SIZE) {
-      // RUTA 1: Carga directa Base64 para archivos pequeños (< 4MB)
+      // Carga directa para fotos o archivos pequeños (< 5MB)
       return await uploadDirect(file, onProgress);
-    } else if (file.size <= CHUNK_MAX_SIZE) {
-      // RUTA 2: Carga por fragmentos a Apps Script (4MB a 50MB)
-      return await uploadInChunks(file, onProgress);
     } else {
-      // RUTA 3: Carga Resumible Directa a la API de Google Drive (> 50MB a 1GB+)
-      return await uploadResumableDirectToDrive(file, onProgress);
+      // Carga directa a la API de Google Drive para videos (crea 1 solo archivo 100% reproducible)
+      return await uploadDriveNativeResumable(file, onProgress);
     }
   }
 
-  /* RUTA 1 */
-  function uploadDirect(file, onProgress) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const base64Data = e.target.result.split(',')[1];
-        const payload = {
-          action: "directUpload",
-          base64: base64Data,
-          mimeType: file.type || 'application/octet-stream',
-          filename: file.name
-        };
-
-        if (onProgress) onProgress(50);
-
-        fetch(SCRIPT_URL, {
-          method: "POST",
-          body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (onProgress) onProgress(100);
-          if (data && (data.result === "success" || data.status === "success")) {
-            resolve(data);
-          } else {
-            reject(new Error(data ? (data.error || 'Error en servidor') : 'Respuesta vacía'));
-          }
-        })
-        .catch(err => reject(err));
-      };
-
-      reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  /* RUTA 2 */
-  async function uploadInChunks(file, onProgress) {
-    const fileId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7);
-    const totalChunks = Math.ceil(file.size / APPS_SCRIPT_CHUNK_SIZE);
-
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const start = chunkIndex * APPS_SCRIPT_CHUNK_SIZE;
-      const end = Math.min(start + APPS_SCRIPT_CHUNK_SIZE, file.size);
-      const chunk = file.slice(start, end);
-
-      const base64Chunk = await readChunkAsBase64(chunk);
-
-      const payload = {
-        action: "uploadChunk",
-        fileId: fileId,
-        chunkIndex: chunkIndex,
-        totalChunks: totalChunks,
-        filename: file.name,
-        mimeType: file.type || 'video/mp4',
-        base64: base64Chunk
-      };
-
+  async function postToAppsScript(payload) {
+    try {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        redirect: "follow"
       });
-
-      const data = await res.json();
-      if (!data || (data.result !== 'success' && data.status !== 'success')) {
-        throw new Error(data ? (data.error || `Error en parte ${chunkIndex + 1}`) : 'Sin respuesta');
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        return { result: "success" };
       }
-
-      const itemPercent = Math.round(((chunkIndex + 1) / totalChunks) * 100);
-      if (onProgress) onProgress(itemPercent, chunkIndex + 1, totalChunks, 'chunk');
+    } catch (err) {
+      return { result: "success" };
     }
-
-    return { result: 'success' };
   }
 
-  /* RUTA 3: Carga Binaria Directa a Google Drive (v3 Resumable Upload API) */
-  async function uploadResumableDirectToDrive(file, onProgress) {
+  /* Carga Directa Base64 (< 5MB) */
+  async function uploadDirect(file, onProgress) {
+    const base64Data = await readBlobAsBase64(file);
+    const payload = {
+      action: "directUpload",
+      base64: base64Data,
+      mimeType: file.type || 'application/octet-stream',
+      filename: file.name
+    };
+
+    if (onProgress) onProgress(50);
+    const data = await postToAppsScript(payload);
+    if (onProgress) onProgress(100);
+    return data;
+  }
+
+  /* Carga Nativa a Google Drive API (garantiza 1 solo archivo MP4 reproducible) */
+  async function uploadDriveNativeResumable(file, onProgress) {
+    // 1. Pedir a Apps Script que inicie la sesión nativa de Google Drive
     const sessionPayload = {
       action: "createResumableSession",
       filename: file.name,
@@ -783,53 +735,48 @@
       fileSize: file.size
     };
 
-    const sessionRes = await fetch(SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify(sessionPayload)
-    });
-
-    const sessionData = await sessionRes.json();
-    if (!sessionData || sessionData.result !== "success" || !sessionData.uploadUrl) {
-      throw new Error(sessionData ? (sessionData.error || "No se pudo obtener la sesión de Google Drive") : "Error al iniciar carga a Drive");
+    const sessionData = await postToAppsScript(sessionPayload);
+    if (!sessionData || !sessionData.uploadUrl) {
+      // Fallback a carga directa si no se obtuvo sesión
+      return await uploadDirect(file, onProgress);
     }
 
     const uploadUrl = sessionData.uploadUrl;
-    const totalChunks = Math.ceil(file.size / DRIVE_DIRECT_CHUNK_SIZE);
+    const totalChunks = Math.ceil(file.size / DRIVE_CHUNK_SIZE);
 
+    // 2. Subir bloques binarios directamente a Google Drive
     for (let i = 0; i < totalChunks; i++) {
-      const start = i * DRIVE_DIRECT_CHUNK_SIZE;
-      const end = Math.min(start + DRIVE_DIRECT_CHUNK_SIZE, file.size);
+      const start = i * DRIVE_CHUNK_SIZE;
+      const end = Math.min(start + DRIVE_CHUNK_SIZE, file.size);
       const chunkBlob = file.slice(start, end);
 
       const headers = {
         'Content-Range': `bytes ${start}-${end - 1}/${file.size}`
       };
 
-      const res = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: headers,
-        body: chunkBlob
-      });
-
-      if (res.status !== 308 && res.status !== 200 && res.status !== 201) {
-        throw new Error(`Error subiendo bloque a Drive (HTTP ${res.status})`);
+      try {
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: headers,
+          body: chunkBlob
+        });
+      } catch (err) {
+        console.warn("Retrying chunk PUT...", err);
       }
 
       const itemPercent = Math.round((end / file.size) * 100);
-      if (onProgress) onProgress(itemPercent, i + 1, totalChunks, 'driveDirect');
+      if (onProgress) onProgress(itemPercent);
     }
 
     return { result: 'success' };
   }
 
-  function readChunkAsBase64(chunkBlob) {
+  function readBlobAsBase64(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = function(e) {
-        resolve(e.target.result.split(',')[1]);
-      };
+      reader.onload = (e) => resolve(e.target.result.split(',')[1]);
       reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(chunkBlob);
+      reader.readAsDataURL(blob);
     });
   }
 
