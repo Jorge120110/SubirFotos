@@ -1,136 +1,837 @@
- 
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sube tus fotos del evento</title>
+  <title>Álbum de Recuerdos — Liss & Misael</title>
+  
+  <!-- Google Fonts del sistema de diseño original -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Great+Vibes&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  
   <style>
+    /* ── DESIGN TOKENS (Sincronizados con styles.css) ───────────────── */
+    :root {
+      --cream:        #faf8f4;
+      --cream-warm:   #f5f0e8;
+      --ivory:        #fffef9;
+      --sand:         #e8ddd3;
+      --sand-dark:    #c9b8a8;
+      --gold-muted:   #c4a87c;
+      --gold-soft:    #d4be96;
+      --gold-accent:  #b8976a;
+      --sage:         #8a9a7b;
+      --sage-muted:   #6b7d5e;
+      --brown-text:   #4a3b32;
+      --brown-soft:   #6b5b50;
+      --brown-light:  #8a7b70;
+      --brown-bg:     #5c4a3d;
+      --dark-section: #3e302a;
+
+      --font-script:  'Great Vibes', cursive;
+      --font-serif:   'Cormorant Garamond', serif;
+      --font-sans:    'Montserrat', sans-serif;
+
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --transition: 0.3s var(--ease);
+      --texture: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    }
+
+    /* ── RESET & BASE ──────────────────────────────────────── */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f6f9;
+      font-family: var(--font-serif);
+      color: var(--brown-text);
+      background-color: var(--cream);
+      background-image: var(--texture);
+      min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
+      padding: 40px 20px;
+      line-height: 1.6;
     }
-    .card {
-      background: #ffffff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      max-width: 400px;
+
+    .upload-container {
       width: 100%;
+      max-width: 680px;
+    }
+
+    .card {
+      background-color: var(--ivory);
+      background-image: var(--texture);
+      border: 1px solid var(--gold-soft);
+      border-radius: 40px 0 40px 0;
+      padding: 48px 36px;
+      box-shadow: 0 12px 35px rgba(74, 59, 50, 0.08);
+      text-align: center;
+      position: relative;
+    }
+
+    /* ── ENCABEZADO ────────────────────────────────────────── */
+    .section-label {
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gold-muted);
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      font-family: var(--font-script);
+      font-size: clamp(2.5rem, 6vw, 3.8rem);
+      color: var(--brown-text);
+      margin-bottom: 8px;
+      line-height: 1.1;
+    }
+
+    .decorative-line {
+      width: 50px;
+      height: 1px;
+      background: var(--gold-muted);
+      margin: 0 auto 18px;
+      opacity: 0.6;
+    }
+
+    .header-desc {
+      font-family: var(--font-serif);
+      font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+      font-style: italic;
+      color: var(--brown-soft);
+      max-width: 520px;
+      margin: 0 auto 28px;
+      line-height: 1.5;
+    }
+
+    /* ── DRAG & DROP ZONE ──────────────────────────────────── */
+    .drop-zone {
+      background-color: var(--cream-warm);
+      border: 1.5px dashed var(--gold-muted);
+      border-radius: 20px 0 20px 0;
+      padding: 36px 20px;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--gold-accent);
+      background-color: #f0e7d9;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(184, 151, 106, 0.15);
+    }
+
+    .drop-zone-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      stroke: var(--gold-accent);
+      fill: none;
+      stroke-width: 1.3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .drop-zone-title {
+      font-family: var(--font-sans);
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--brown-text);
+      margin-bottom: 6px;
+    }
+
+    .drop-zone-subtitle {
+      font-family: var(--font-serif);
+      font-size: 0.95rem;
+      font-style: italic;
+      color: var(--brown-light);
+      margin-bottom: 14px;
+    }
+
+    .btn-select-pill {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--brown-text);
+      background: var(--cream);
+      border: 1px solid var(--gold-muted);
+      border-radius: 50px;
+      padding: 8px 24px;
+      transition: all var(--transition);
+    }
+
+    .drop-zone:hover .btn-select-pill {
+      background: var(--brown-text);
+      color: var(--cream);
+      border-color: var(--brown-text);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    /* ── COLA Y GRILLA DE VISTAS PREVIAS ───────────────────── */
+    .queue-section {
+      margin-top: 32px;
+      text-align: left;
+    }
+
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--sand);
+    }
+
+    .queue-title {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold-accent);
+    }
+
+    .btn-clear {
+      background: none;
+      border: none;
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--brown-light);
+      cursor: pointer;
+      transition: color var(--transition);
+    }
+
+    .btn-clear:hover {
+      color: var(--brown-text);
+      text-decoration: underline;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+      gap: 14px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    /* Custom Scrollbar */
+    .preview-grid::-webkit-scrollbar {
+      width: 5px;
+    }
+    .preview-grid::-webkit-scrollbar-track {
+      background: var(--cream-warm);
+      border-radius: 4px;
+    }
+    .preview-grid::-webkit-scrollbar-thumb {
+      background: var(--gold-soft);
+      border-radius: 4px;
+    }
+
+    .preview-card {
+      background: var(--cream);
+      border: 1px solid var(--sand);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(74, 59, 50, 0.04);
+      transition: transform var(--transition), border-color var(--transition);
+    }
+
+    .preview-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--gold-soft);
+    }
+
+    .preview-media-container {
+      width: 100%;
+      height: 105px;
+      background: var(--dark-section);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-media-container img,
+    .preview-media-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .badge-type {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(62, 48, 42, 0.85);
+      backdrop-filter: blur(4px);
+      color: var(--cream);
+      font-family: var(--font-sans);
+      font-size: 0.55rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .btn-remove {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(255, 254, 249, 0.9);
+      color: var(--brown-text);
+      border: 1px solid var(--sand-dark);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .btn-remove:hover {
+      background: var(--brown-text);
+      color: var(--cream);
+      border-color: var(--brown-text);
+    }
+
+    .preview-info {
+      padding: 10px 8px;
       text-align: center;
     }
-    h2 { color: #333; margin-bottom: 10px; }
-    p { color: #666; font-size: 0.9em; margin-bottom: 20px; }
-    input[type="file"] { display: none; }
-    .custom-file-upload {
-      border: 2px dashed #007bff;
-      color: #007bff;
-      padding: 12px 20px;
-      border-radius: 8px;
+
+    .file-name {
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--brown-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      font-family: var(--font-serif);
+      font-size: 0.8rem;
+      color: var(--brown-light);
+      font-style: italic;
+    }
+
+    /* ── BOTÓN DE SUBIDA Y BARRA DE PROGRESO ───────────────── */
+    .actions-section {
+      margin-top: 32px;
+    }
+
+    .btn-submit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 380px;
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background-color: var(--brown-text);
+      color: var(--cream);
+      border: 1px solid var(--brown-text);
+      border-radius: 50px;
+      padding: 15px 36px;
+      box-shadow: 0 4px 15px rgba(74, 59, 50, 0.18);
       cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background-color: var(--gold-accent);
+      border-color: var(--gold-accent);
+      color: var(--cream);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(184, 151, 106, 0.35);
+    }
+
+    .btn-submit:disabled {
+      background-color: var(--sand-dark);
+      border-color: var(--sand-dark);
+      color: var(--cream-warm);
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .progress-container {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: var(--sand);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--sage);
+      border-radius: 10px;
+      transition: width 0.3s var(--ease);
+    }
+
+    .status-text {
+      margin-top: 14px;
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--brown-text);
+    }
+
+    .status-success { color: var(--sage-muted); font-weight: 500; }
+    .status-error { color: #a94442; }
+
+    /* Spinner elegante */
+    .spinner-sage {
       display: inline-block;
-      font-weight: bold;
-      width: 80%;
-      transition: background 0.3s;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--sand-dark);
+      border-radius: 50%;
+      border-top-color: var(--brown-text);
+      animation: spin 0.8s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
     }
-    .custom-file-upload:hover { background: #eef5ff; }
-    button {
-      background: #28a745;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 1em;
-      cursor: pointer;
-      width: 90%;
-      margin-top: 15px;
-      font-weight: bold;
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    #status { margin-top: 15px; font-weight: bold; font-size: 0.9em; }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 32px 20px;
+        border-radius: 30px 0 30px 0;
+      }
+      .preview-grid {
+        grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+        gap: 10px;
+      }
+    }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>¡Comparte tus Fotos! 📸</h2>
-  <p>Selecciona una foto o video de tu galería para subirlo directamente al álbum del evento.</p>
+<div class="upload-container">
+  <div class="card">
+    
+    <!-- Encabezado al estilo de la invitación -->
+    <div class="section-label">Álbum Digital del Evento</div>
+    <h1 class="section-title">¡Comparte tus Recuerdos!</h1>
+    <div class="decorative-line"></div>
+    <p class="header-desc">
+      Selecciona tus fotos y videos favoritos de la celebración para guardarlos directamente en nuestro álbum de boda.
+    </p>
 
-  <label for="fileInput" class="custom-file-upload">
-    📁 Seleccionar foto/video
-  </label>
-  <input type="file" id="fileInput" accept="image/*,video/*">
+    <!-- Zona de Carga / Drag & Drop -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <svg class="drop-zone-icon" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      <div class="drop-zone-title">Arrastra tus fotos o videos aquí</div>
+      <div class="drop-zone-subtitle">Soporta fotos y videos de cualquier tamaño</div>
+      <span class="btn-select-pill">Seleccionar archivos</span>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,video/mp4,video/quicktime,video/webm,video/x-msvideo" multiple>
+    </div>
 
-  <p id="fileName"></p>
+    <!-- Cola de Selección y Vistas Previas -->
+    <div class="queue-section" id="queueSection" style="display: none;">
+      <div class="queue-header">
+        <span class="queue-title" id="queueCount">Archivos seleccionados (0)</span>
+        <button type="button" class="btn-clear" onclick="clearQueue()">Limpiar selección</button>
+      </div>
+      <div class="preview-grid" id="previewGrid"></div>
+    </div>
 
-  <button id="uploadBtn" onclick="uploadFile()" disabled>Subir foto</button>
+    <!-- Sección de Acciones y Estado -->
+    <div class="actions-section">
+      <button type="button" class="btn-submit" id="uploadBtn" onclick="uploadBatch()" disabled>
+        <span id="btnText">Enviar a nuestro Álbum</span>
+      </button>
 
-  <div id="status"></div>
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <div class="status-text" id="status"></div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <script>
-  // REEMPLAZA ESTA URL CON TU URL DE GOOGLE APPS SCRIPT
- const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK7VaET5G7vXTv1dauyL4jd33F-qcIfRcAd7OvVA0BOuPTxwlwgiSNRGm2CRXiWC6qpg/exec";
+  // URL de tu Google Apps Script Web App
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzK7VaET5G7vXTv1dauyL4jd33F-qcIfRcAd7OvVA0BOuPTxwlwgiSNRGm2CRXiWC6qpg/exec";
+
+  // Umbrales del Motor Híbrido
+  const DIRECT_MAX_SIZE = 4 * 1024 * 1024;    // < 4 MB -> Ruta 1: Carga Directa
+  const CHUNK_MAX_SIZE = 50 * 1024 * 1024;   // 4MB a 50MB -> Ruta 2: Fragmentos Apps Script
+  const APPS_SCRIPT_CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB por fragmento
+  const DRIVE_DIRECT_CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB por fragmento binario a Drive
+
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+  const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/3gpp'];
+
+  let fileQueue = [];
 
   const fileInput = document.getElementById('fileInput');
-  const fileName = document.getElementById('fileName');
+  const dropZone = document.getElementById('dropZone');
+  const queueSection = document.getElementById('queueSection');
+  const queueCount = document.getElementById('queueCount');
+  const previewGrid = document.getElementById('previewGrid');
   const uploadBtn = document.getElementById('uploadBtn');
+  const btnText = document.getElementById('btnText');
   const statusDiv = document.getElementById('status');
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBarFill = document.getElementById('progressBarFill');
 
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files.length > 0) {
-      fileName.textContent = fileInput.files[0].name;
-      uploadBtn.disabled = false;
-    }
+  // Drag & Drop
+  ['dragenter', 'dragover'].forEach(name => {
+    dropZone.addEventListener(name, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      dropZone.classList.add('dragover');
+    });
   });
 
-  function uploadFile() {
-    const file = fileInput.files[0];
-    if (!file) return;
+  ['dragleave', 'drop'].forEach(name => {
+    dropZone.addEventListener(name, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      dropZone.classList.remove('dragover');
+    });
+  });
 
-    statusDiv.style.color = "#007bff";
-    statusDiv.textContent = "Subiendo archivo, por favor espera...";
+  dropZone.addEventListener('drop', (e) => {
+    handleFiles(e.dataTransfer.files);
+  });
+
+  fileInput.addEventListener('change', () => {
+    handleFiles(fileInput.files);
+    fileInput.value = '';
+  });
+
+  function handleFiles(files) {
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach(file => {
+      const isImg = ALLOWED_IMAGE_TYPES.includes(file.type) || file.type.startsWith('image/');
+      const isVid = ALLOWED_VIDEO_TYPES.includes(file.type) || file.type.startsWith('video/');
+
+      if (isImg || isVid) {
+        const exists = fileQueue.some(item => item.file.name === file.name && item.file.size === file.size);
+        if (!exists) {
+          fileQueue.push({
+            id: 'f_' + Math.random().toString(36).substr(2, 9),
+            file: file,
+            type: isVid ? 'video' : 'foto',
+            previewUrl: URL.createObjectURL(file)
+          });
+        }
+      }
+    });
+
+    renderQueue();
+  }
+
+  function renderQueue() {
+    previewGrid.innerHTML = '';
+
+    if (fileQueue.length === 0) {
+      queueSection.style.display = 'none';
+      uploadBtn.disabled = true;
+      btnText.textContent = 'Enviar a nuestro Álbum';
+      return;
+    }
+
+    queueSection.style.display = 'block';
+    queueCount.textContent = `Archivos seleccionados (${fileQueue.length})`;
+    uploadBtn.disabled = false;
+    btnText.textContent = `Enviar ${fileQueue.length} ${fileQueue.length === 1 ? 'recuerdo' : 'recuerdos'}`;
+
+    fileQueue.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'preview-card';
+
+      let mediaHtml = item.type === 'foto'
+        ? `<img src="${item.previewUrl}" alt="Vista previa">`
+        : `<video src="${item.previewUrl}" muted playsinline></video>`;
+
+      card.innerHTML = `
+        <div class="preview-media-container">
+          ${mediaHtml}
+          <span class="badge-type">${item.type}</span>
+          <button type="button" class="btn-remove" onclick="removeFile('${item.id}', event)" title="Quitar">✕</button>
+        </div>
+        <div class="preview-info">
+          <div class="file-name">Documento general</div>
+          <div class="file-size">${formatBytes(item.file.size)}</div>
+        </div>
+      `;
+
+      previewGrid.appendChild(card);
+    });
+  }
+
+  function removeFile(id, event) {
+    if (event) event.stopPropagation();
+    const index = fileQueue.findIndex(item => item.id === id);
+    if (index !== -1) {
+      URL.revokeObjectURL(fileQueue[index].previewUrl);
+      fileQueue.splice(index, 1);
+      renderQueue();
+    }
+  }
+
+  function clearQueue() {
+    fileQueue.forEach(item => URL.revokeObjectURL(item.previewUrl));
+    fileQueue = [];
+    renderQueue();
+  }
+
+  async function uploadBatch() {
+    if (fileQueue.length === 0) return;
+
     uploadBtn.disabled = true;
+    dropZone.style.pointerEvents = 'none';
+    dropZone.style.opacity = '0.6';
+    document.querySelectorAll('.btn-remove, .btn-clear').forEach(b => b.style.display = 'none');
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const base64Data = e.target.result.split(',')[1];
-      const payload = {
-        base64: base64Data,
-        mimeType: file.type,
-        filename: file.name
+    progressContainer.style.display = 'block';
+    progressBarFill.style.width = '0%';
+
+    let total = fileQueue.length;
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < total; i++) {
+      const item = fileQueue[i];
+
+      try {
+        await uploadSingleFile(item.file, (itemPercent) => {
+          const fileWeight = 100 / total;
+          const overallPercent = Math.round((i * fileWeight) + ((itemPercent / 100) * fileWeight));
+          progressBarFill.style.width = Math.min(overallPercent, 100) + '%';
+
+          statusDiv.className = 'status-text';
+          statusDiv.innerHTML = `<span class="spinner-sage"></span> Guardando archivo ${i + 1} de ${total}...`;
+        });
+        successCount++;
+      } catch (err) {
+        console.error(`Error enviando elemento ${i + 1}:`, err);
+        failCount++;
+      }
+    }
+
+    progressBarFill.style.width = '100%';
+    dropZone.style.pointerEvents = 'auto';
+    dropZone.style.opacity = '1';
+
+    if (failCount === 0) {
+      statusDiv.className = 'status-text status-success';
+      statusDiv.textContent = `¡Muchas gracias! 🕊️ Se han guardado tus ${successCount} recuerdos en nuestro álbum.`;
+      clearQueue();
+    } else if (successCount > 0) {
+      statusDiv.className = 'status-text';
+      statusDiv.textContent = `Se guardaron ${successCount} de ${total} archivos. ${failCount} tuvieron un problema al cargarse.`;
+    } else {
+      statusDiv.className = 'status-text status-error';
+      statusDiv.textContent = `No se pudieron guardar los archivos. Por favor inténtalo nuevamente.`;
+    }
+
+    btnText.textContent = 'Enviar a nuestro Álbum';
+  }
+
+  /* ── ENRUTADOR HÍBRIDO PRINCIPAL ────────────────────────────── */
+  async function uploadSingleFile(file, onProgress) {
+    if (file.size <= DIRECT_MAX_SIZE) {
+      // RUTA 1: Carga directa Base64 para archivos pequeños (< 4MB)
+      return await uploadDirect(file, onProgress);
+    } else if (file.size <= CHUNK_MAX_SIZE) {
+      // RUTA 2: Carga por fragmentos a Apps Script (4MB a 50MB)
+      return await uploadInChunks(file, onProgress);
+    } else {
+      // RUTA 3: Carga Resumible Directa a la API de Google Drive (> 50MB a 1GB+)
+      return await uploadResumableDirectToDrive(file, onProgress);
+    }
+  }
+
+  /* RUTA 1 */
+  function uploadDirect(file, onProgress) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result.split(',')[1];
+        const payload = {
+          action: "directUpload",
+          base64: base64Data,
+          mimeType: file.type || 'application/octet-stream',
+          filename: file.name
+        };
+
+        if (onProgress) onProgress(50);
+
+        fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (onProgress) onProgress(100);
+          if (data && (data.result === "success" || data.status === "success")) {
+            resolve(data);
+          } else {
+            reject(new Error(data ? (data.error || 'Error en servidor') : 'Respuesta vacía'));
+          }
+        })
+        .catch(err => reject(err));
       };
 
-      fetch(SCRIPT_URL, {
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* RUTA 2 */
+  async function uploadInChunks(file, onProgress) {
+    const fileId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7);
+    const totalChunks = Math.ceil(file.size / APPS_SCRIPT_CHUNK_SIZE);
+
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const start = chunkIndex * APPS_SCRIPT_CHUNK_SIZE;
+      const end = Math.min(start + APPS_SCRIPT_CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+
+      const base64Chunk = await readChunkAsBase64(chunk);
+
+      const payload = {
+        action: "uploadChunk",
+        fileId: fileId,
+        chunkIndex: chunkIndex,
+        totalChunks: totalChunks,
+        filename: file.name,
+        mimeType: file.type || 'video/mp4',
+        base64: base64Chunk
+      };
+
+      const res = await fetch(SCRIPT_URL, {
         method: "POST",
         body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.result === "success") {
-          statusDiv.style.color = "#28a745";
-          statusDiv.textContent = "¡Foto subida con éxito! 🎉 Gracias por compartir.";
-          fileInput.value = "";
-          fileName.textContent = "";
-        } else {
-          throw new Error(data.error);
-        }
-      })
-      .catch(err => {
-        statusDiv.style.color = "#dc3545";
-        statusDiv.textContent = "Error al subir la foto. Inténtalo de nuevo.";
-        console.error(err);
-        uploadBtn.disabled = false;
       });
+
+      const data = await res.json();
+      if (!data || (data.result !== 'success' && data.status !== 'success')) {
+        throw new Error(data ? (data.error || `Error en parte ${chunkIndex + 1}`) : 'Sin respuesta');
+      }
+
+      const itemPercent = Math.round(((chunkIndex + 1) / totalChunks) * 100);
+      if (onProgress) onProgress(itemPercent, chunkIndex + 1, totalChunks, 'chunk');
+    }
+
+    return { result: 'success' };
+  }
+
+  /* RUTA 3: Carga Binaria Directa a Google Drive (v3 Resumable Upload API) */
+  async function uploadResumableDirectToDrive(file, onProgress) {
+    const sessionPayload = {
+      action: "createResumableSession",
+      filename: file.name,
+      mimeType: file.type || "video/mp4",
+      fileSize: file.size
     };
 
-    reader.readAsDataURL(file);
+    const sessionRes = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(sessionPayload)
+    });
+
+    const sessionData = await sessionRes.json();
+    if (!sessionData || sessionData.result !== "success" || !sessionData.uploadUrl) {
+      throw new Error(sessionData ? (sessionData.error || "No se pudo obtener la sesión de Google Drive") : "Error al iniciar carga a Drive");
+    }
+
+    const uploadUrl = sessionData.uploadUrl;
+    const totalChunks = Math.ceil(file.size / DRIVE_DIRECT_CHUNK_SIZE);
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * DRIVE_DIRECT_CHUNK_SIZE;
+      const end = Math.min(start + DRIVE_DIRECT_CHUNK_SIZE, file.size);
+      const chunkBlob = file.slice(start, end);
+
+      const headers = {
+        'Content-Range': `bytes ${start}-${end - 1}/${file.size}`
+      };
+
+      const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: headers,
+        body: chunkBlob
+      });
+
+      if (res.status !== 308 && res.status !== 200 && res.status !== 201) {
+        throw new Error(`Error subiendo bloque a Drive (HTTP ${res.status})`);
+      }
+
+      const itemPercent = Math.round((end / file.size) * 100);
+      if (onProgress) onProgress(itemPercent, i + 1, totalChunks, 'driveDirect');
+    }
+
+    return { result: 'success' };
+  }
+
+  function readChunkAsBase64(chunkBlob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        resolve(e.target.result.split(',')[1]);
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(chunkBlob);
+    });
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
 </script>
 
